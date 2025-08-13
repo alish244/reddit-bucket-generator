@@ -1,31 +1,26 @@
-# reddit_bucket_generator.py
-import sys
+import boto3
+from botocore.exceptions import ClientError
 
-def generate_buckets(base_name):
-    suffixes = [
-        "uploads", "images", "static", "media", "data", "assets",
-        "cdn", "public", "test", "backup", "archive", "logs",
-        "photos", "videos", "usercontent", "storage", "snapshots",
-        "staging", "content", "files"
-    ]
-    
-    environments = ["", "-dev", "-stg", "-prod"]
+# ألوان للطباعة
+class bcolors:
+    OK = '\033[92m'    # أخضر
+    FAIL = '\033[91m'  # أحمر
+    END = '\033[0m'    # نهاية اللون
 
-    buckets = []
-    for env in environments:
-        for suffix in suffixes:
-            bucket_name = f"{base_name}-{suffix}{env}"
-            buckets.append(bucket_name)
-    return buckets
+bucket_name = input("Enter bucket name: ")
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print(f"Usage: python {sys.argv[0]} <company_name>")
-        sys.exit(1)
-    
-    company_name = sys.argv[1].lower()
-    all_buckets = generate_buckets(company_name)
-    
-    print("\nGenerated bucket names:")
-    for b in all_buckets:
-        print(b)
+s3 = boto3.client('s3', aws_access_key_id='', aws_secret_access_key='')
+
+# فحص إمكانية القراءة
+try:
+    s3.list_objects_v2(Bucket=bucket_name)
+    print(f"{bcolors.OK}[SUCCESS]{bcolors.END} Bucket '{bucket_name}' is readable")
+except ClientError:
+    print(f"{bcolors.FAIL}[FAIL]{bcolors.END} Bucket '{bucket_name}' is not readable")
+
+# محاولة رفع ملف صغير
+try:
+    s3.put_object(Bucket=bucket_name, Key='test.txt', Body='This is a test.')
+    print(f"{bcolors.OK}[SUCCESS]{bcolors.END} Able to write to '{bucket_name}'")
+except ClientError:
+    print(f"{bcolors.FAIL}[FAIL]{bcolors.END} Cannot write to '{bucket_name}'")
